@@ -5,8 +5,9 @@ import { WishesController } from './wishes.controller';
 import { Wish } from './entities/wish.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Wish])],
+  imports: [TypeOrmModule.forFeature([Wish]), WishesModule],
   controllers: [WishesController],
   providers: [WishesService],
+  exports: [WishesService],
 })
 export class WishesModule {}

@@ -2,7 +2,7 @@
   "name": "kupipodariday-backend",
   "version": "0.0.1",
   "description": "",
-  "author": "",
+  "author": "Julia Zhidkova",
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
@@ -22,12 +22,14 @@
   },
   "dependencies": {
     "@nestjs/common": "^9.4.3",
+    "@nestjs/config": "^3.0.0",
     "@nestjs/core": "^9.4.3",
     "@nestjs/jwt": "^9.0.0",
     "@nestjs/mapped-types": "^1.1.0",
     "@nestjs/passport": "^9.0.0",
     "@nestjs/platform-express": "^9.0.0",
     "@nestjs/swagger": "^6.0.5",
+    "@nestjs/throttler": "^4.2.1",
     "@nestjs/typeorm": "^9.0.0",
     "bcrypt": "^5.0.1",
     "class-transformer": "^0.5.1",

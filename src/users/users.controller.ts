@@ -1,34 +1,63 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { User } from './entities/user.entity';
 import { UsersService } from './users.service';
-import { CreateUserDto } from './dto/create-user.dto';
+import { NotFoundException } from '@nestjs/common/exceptions';
+import { Controller, Get, Body, Patch, Req, Post, Param } from '@nestjs/common';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { Wish } from 'src/wishes/entities/wish.entity';
 
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  @Post()
-  create(@Body() createUserDto: CreateUserDto) {
-    return this.usersService.create(createUserDto);
+  @Get('me')
+  async getUser(@Req() { user }: { user: User }): Promise<User> {
+    const userData = await this.usersService.findById(user.id);
+
+    if (!userData) {
+      throw new NotFoundException();
+    }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password, ...result } = userData;
+    return result;
   }
 
-  @Get()
-  findAll() {
-    return this.usersService.findAll();
+  @Patch('me')
+  async updateUser(
+    @Req() { user }: { user: User },
+    @Body() dto: UpdateUserDto,
+  ): Promise<User> {
+    return await this.usersService.updateUser(user.id, dto);
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.usersService.findOne(+id);
+  @Get('me/wishes')
+  async getAuthUserWishes(@Req() { user }: { user: User }): Promise<Wish[]> {
+    return await this.usersService.getWishes(Number(user.id));
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.usersService.update(+id, updateUserDto);
+  @Get(':username')
+  async getUserByUsername(@Param('username') username: string): Promise<User> {
+    const user = await this.usersService.findByUsername(username);
+
+    if (!user) {
+      throw new NotFoundException();
+    }
+
+    return user;
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.usersService.remove(+id);
+  @Get(':username/wishes')
+  async getUserWishes(@Param('username') username: string): Promise<Wish[]> {
+    const user = await this.usersService.findByUsername(username);
+
+    if (!user) {
+      throw new NotFoundException();
+    }
+
+    return await this.usersService.getWishes(Number(user.id));
+  }
+
+  @Post('find')
+  async findUsers(@Body('query') query: string): Promise<User[]> {
+    return await this.usersService.findUser(query);
   }
 }

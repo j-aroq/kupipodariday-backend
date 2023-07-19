@@ -1,26 +1,151 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { In, Repository } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
 import { CreateWishDto } from './dto/create-wish.dto';
 import { UpdateWishDto } from './dto/update-wish.dto';
+import { User } from 'src/users/entities/user.entity';
+import { Wish } from './entities/wish.entity';
+import { WISH_COPY_NOT_ALLOWED } from 'src/utils/constants/wish';
 
 @Injectable()
 export class WishesService {
-  create(createWishDto: CreateWishDto) {
-    return 'This action adds a new wish';
+  constructor(
+    @InjectRepository(Wish)
+    private wishRepository: Repository<Wish>,
+  ) {}
+
+  async create(createWishDto: CreateWishDto, user: User) {
+    const wish = await this.wishRepository.save({
+      ...createWishDto,
+      owner: user,
+    });
+    return wish;
   }
 
-  findAll() {
-    return `This action returns all wishes`;
+  async getLastWishes(): Promise<Wish[]> {
+    return await this.wishRepository.find({
+      take: 40,
+      order: { createdAt: 'desc' },
+      relations: [
+        'owner',
+        'offers',
+        'offers.user',
+        'offers.user.wishes',
+        'offers.user.offers',
+        'offers.user.wishlists',
+      ],
+    });
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} wish`;
+  async getTopWishes(): Promise<Wish[]> {
+    return await this.wishRepository.find({
+      take: 20,
+      order: { copied: 'desc' },
+      relations: [
+        'owner',
+        'offers',
+        'offers.user',
+        'offers.user.wishes',
+        'offers.user.offers',
+        'offers.user.wishlists',
+      ],
+    });
   }
 
-  update(id: number, updateWishDto: UpdateWishDto) {
-    return `This action updates a #${id} wish`;
+  async findById(id: number): Promise<Wish> {
+    const wish = await this.wishRepository.findOne({
+      where: { id },
+      relations: [
+        'owner',
+        'offers',
+        'offers.user',
+        'offers.user.wishes',
+        'offers.user.offers',
+        'offers.user.wishlists',
+      ],
+    });
+
+    if (!wish) {
+      throw new NotFoundException();
+    }
+
+    return wish;
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} wish`;
+  async findMany(ids: number[]): Promise<Wish[]> {
+    return this.wishRepository.find({
+      where: { id: In(ids) },
+    });
+  }
+
+  async updateWish(wishId: number, dto: UpdateWishDto, userId: number) {
+    const wish = await this.findById(wishId);
+
+    if (!wish) {
+      throw new NotFoundException();
+    }
+
+    if (wish.raised > 0) {
+      throw new BadRequestException();
+    }
+
+    if (wish.owner.id !== userId) {
+      throw new BadRequestException();
+    }
+
+    await this.wishRepository.update(wishId, dto);
+  }
+
+  async removeWish(wishId: number, userId: number): Promise<Wish> {
+    const wish = await this.findById(wishId);
+    if (!wish) {
+      throw new NotFoundException();
+    }
+
+    if (wish.owner.id !== userId) {
+      throw new BadRequestException();
+    }
+
+    await this.wishRepository.delete(wishId);
+
+    return wish;
+  }
+
+  async copyWish(wishId: number, user: User) {
+    const wish = await this.wishRepository.findOneBy({ id: wishId });
+
+    if (!wish) {
+      throw new NotFoundException();
+    }
+
+    if (wish.owner.id == user.id) {
+      throw new BadRequestException(WISH_COPY_NOT_ALLOWED);
+    }
+
+    await this.wishRepository.update(wishId, {
+      copied: (wish.copied += 1),
+    });
+
+    delete wish.id;
+    delete wish.createdAt;
+    delete wish.updatedAt;
+
+    const wishCopy = {
+      ...wish,
+      owner: user,
+      copied: 0,
+      raised: 0,
+      offers: [],
+    };
+
+    await this.create(wishCopy, user);
+  }
+
+  async updateRaisedAmount(wishId: number, raised: number) {
+    await this.wishRepository.update(wishId, { raised });
   }
 }
