@@ -43,7 +43,7 @@ export class OffersService {
       item: wish,
     });
 
-    await this.offerRepository.save(createdOffer);
+    return await this.offerRepository.save(createdOffer);
   }
 
   async findById(id: number): Promise<Offer> {

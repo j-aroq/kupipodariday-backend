@@ -8,4 +8,6 @@ export default () => ({
     password: process.env.DATABASE_PASSWORD || 'student',
     synchronize: Boolean(process.env.SYNCHRONIZE) || true,
   },
+  JWT_SECRET: process.env.JWT_SECRET || 'jwtSecret',
+  JWT_EXPIRES: process.env.JWT_EXPIRES || '24h',
 });

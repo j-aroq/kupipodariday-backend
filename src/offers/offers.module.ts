@@ -6,8 +6,8 @@ import { Offer } from './entities/offer.entity';
 import { WishesModule } from 'src/wishes/wishes.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Offer]), WishesModule],
-  controllers: [OffersController],
   providers: [OffersService],
+  controllers: [OffersController],
+  imports: [TypeOrmModule.forFeature([Offer]), WishesModule],
 })
 export class OffersModule {}

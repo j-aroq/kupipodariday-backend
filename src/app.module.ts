@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { AppController } from './app.controller';
 import { WishesModule } from './wishes/wishes.module';
 import { UsersModule } from './users/users.module';
 import { WishlistsModule } from './wishlists/wishlists.module';
@@ -12,6 +11,8 @@ import { Wishlist } from './wishlists/entities/wishlist.entity';
 import { Offer } from './offers/entities/offer.entity';
 import config from './configuration/config';
 import { HashModule } from './hash/hash.module';
+import { AuthModule } from './auth/auth.module';
+import { ThrottlerModule } from '@nestjs/throttler';
 
 @Module({
   imports: [
@@ -26,12 +27,18 @@ import { HashModule } from './hash/hash.module';
       entities: [User, Wish, Offer, Wishlist],
       synchronize: config().database.synchronize,
     }),
+    ThrottlerModule.forRoot({
+      ttl: 60,
+      limit: 20,
+    }),
     UsersModule,
     WishesModule,
     WishlistsModule,
     OffersModule,
+    AuthModule,
     HashModule,
   ],
-  controllers: [AppController],
+  controllers: [],
+  providers: [],
 })
 export class AppModule {}

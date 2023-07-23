@@ -122,7 +122,7 @@ export class WishesService {
       throw new NotFoundException();
     }
 
-    if (wish.owner.id == user.id) {
+    if (wish.owner.id === user.id) {
       throw new BadRequestException(WISH_COPY_NOT_ALLOWED);
     }
 

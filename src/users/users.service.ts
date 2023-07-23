@@ -1,16 +1,12 @@
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
-import {
-  BadRequestException,
-  NotFoundException,
-  Injectable,
-} from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './entities/user.entity';
-import { HashService } from 'src/hash/hash.service';
 import { Wish } from 'src/wishes/entities/wish.entity';
 import { USER_ALREADY_EXISTS } from 'src/utils/constants/user';
+import { HashService } from 'src/hash/hash.service';
 
 @Injectable()
 export class UsersService {
@@ -37,16 +33,28 @@ export class UsersService {
     });
   }
 
-  async findById(id: number): Promise<User> {
-    return await this.userRepository.findOneBy({ id });
-  }
-
   async findByUsername(username: string): Promise<User> {
     return await this.userRepository.findOneBy({ username });
   }
 
   async findByEmail(email: string): Promise<User> {
     return await this.userRepository.findOneBy({ email });
+  }
+
+  async findById(id: number): Promise<User> {
+    return await this.userRepository.findOneBy({ id });
+  }
+
+  async findMany(query: string): Promise<User[]> {
+    const users = await this.userRepository.find({
+      where: [{ email: query }, { username: query }],
+    });
+
+    users.forEach((user) => {
+      delete user.password;
+    });
+
+    return users;
   }
 
   async updateUser(id: number, dto: UpdateUserDto): Promise<User> {
@@ -67,26 +75,6 @@ export class UsersService {
     await this.userRepository.update(user.id, updatedUser);
 
     return await this.findById(id);
-  }
-
-  async removeUser(id: number): Promise<User> {
-    const user = await this.findById(id);
-
-    if (!user) {
-      throw new NotFoundException();
-    }
-
-    await this.userRepository.delete(id);
-
-    return user;
-  }
-
-  async findUser(query: string): Promise<User[]> {
-    const users = await this.userRepository.find({
-      where: [{ email: query }, { username: query }],
-    });
-
-    return users;
   }
 
   async getWishes(id: number): Promise<Wish[]> {

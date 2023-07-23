@@ -1,10 +1,23 @@
 import { User } from './entities/user.entity';
 import { UsersService } from './users.service';
 import { NotFoundException } from '@nestjs/common/exceptions';
-import { Controller, Get, Body, Patch, Req, Post, Param } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Body,
+  Patch,
+  Req,
+  Post,
+  Param,
+  UseGuards,
+} from '@nestjs/common';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { Wish } from 'src/wishes/entities/wish.entity';
+import { ThrottlerGuard } from '@nestjs/throttler';
+import { JwtGuard } from 'src/auth/guards/jwt.guard';
 
+@UseGuards(JwtGuard)
+@UseGuards(ThrottlerGuard)
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
@@ -57,7 +70,7 @@ export class UsersController {
   }
 
   @Post('find')
-  async findUsers(@Body('query') query: string): Promise<User[]> {
-    return await this.usersService.findUser(query);
+  async findUser(@Body('query') query: string): Promise<User[]> {
+    return await this.usersService.findMany(query);
   }
 }
