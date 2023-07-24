@@ -9,7 +9,10 @@ import { CreateWishDto } from './dto/create-wish.dto';
 import { UpdateWishDto } from './dto/update-wish.dto';
 import { User } from 'src/users/entities/user.entity';
 import { Wish } from './entities/wish.entity';
-import { WISH_COPY_NOT_ALLOWED } from 'src/utils/constants/wish';
+import {
+  WISH_COPY_NOT_ALLOWED,
+  HAS_BEEN_ALREADY_COPIED,
+} from 'src/utils/constants/wish';
 
 @Injectable()
 export class WishesService {
@@ -141,6 +144,13 @@ export class WishesService {
       raised: 0,
       offers: [],
     };
+
+    const hasSameWish = user.wishes.some(
+      (userWish) => userWish.name === wishCopy.name,
+    );
+    if (hasSameWish) {
+      throw new BadRequestException(HAS_BEEN_ALREADY_COPIED);
+    }
 
     await this.create(wishCopy, user);
   }

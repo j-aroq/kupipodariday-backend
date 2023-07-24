@@ -5,7 +5,10 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './entities/user.entity';
 import { Wish } from 'src/wishes/entities/wish.entity';
-import { USER_ALREADY_EXISTS } from 'src/utils/constants/user';
+import {
+  USER_ALREADY_EXISTS,
+  CREDENTIALS_ALREADY_EXIST,
+} from 'src/utils/constants/user';
 import { HashService } from 'src/hash/hash.service';
 
 @Injectable()
@@ -72,6 +75,15 @@ export class UsersService {
       username: dto?.username,
       avatar: dto?.avatar,
     };
+
+    const doesUserExist =
+      (await this.findByEmail(updatedUser.email)) ||
+      (await this.findByUsername(updatedUser.username));
+
+    if (doesUserExist) {
+      throw new BadRequestException(CREDENTIALS_ALREADY_EXIST);
+    }
+
     await this.userRepository.update(user.id, updatedUser);
 
     return await this.findById(id);
