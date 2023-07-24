@@ -3,7 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { CreateOfferDto } from './dto/create-offer.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from 'src/users/entities/user.entity';
@@ -17,33 +17,45 @@ export class OffersService {
     @InjectRepository(Offer)
     private readonly offerRepository: Repository<Offer>,
     private readonly wishesService: WishesService,
+    private readonly dataSource: DataSource,
   ) {}
 
   async create(dto: CreateOfferDto, user: User) {
-    const wish = await this.wishesService.findById(dto.itemId);
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    if (!wish) {
-      throw new NotFoundException();
+    try {
+      const wish = await this.wishesService.findById(dto.itemId);
+
+      if (!wish) {
+        throw new NotFoundException();
+      }
+
+      if (wish.owner.id === user.id) {
+        throw new BadRequestException();
+      }
+
+      const totalSum = wish.raised + dto.amount;
+      if (totalSum > wish.price) {
+        throw new BadRequestException(SUM_EXCEEDS_WISH_PRICE);
+      }
+
+      await this.wishesService.updateRaisedAmount(wish.id, totalSum);
+
+      const createdOffer = await this.offerRepository.create({
+        ...dto,
+        user,
+        item: wish,
+      });
+      await queryRunner.manager.save(createdOffer);
+      await queryRunner.commitTransaction();
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      throw err;
+    } finally {
+      await queryRunner.release();
     }
-
-    if (wish.owner.id === user.id) {
-      throw new BadRequestException();
-    }
-
-    const totalSum = wish.raised + dto.amount;
-    if (totalSum > wish.price) {
-      throw new BadRequestException(SUM_EXCEEDS_WISH_PRICE);
-    }
-
-    await this.wishesService.updateRaisedAmount(wish.id, totalSum);
-
-    const createdOffer = await this.offerRepository.create({
-      ...dto,
-      user,
-      item: wish,
-    });
-
-    return await this.offerRepository.save(createdOffer);
   }
 
   async findById(id: number): Promise<Offer> {
